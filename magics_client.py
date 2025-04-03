@@ -561,6 +561,7 @@ class MagicsClient:
         Step the simulation forward by one frame.
         """
         self._send_request("Step")
+        print("step done")
 
     def reset(self) -> None:
         """
@@ -854,7 +855,9 @@ class MagicsClient:
         except MagicsError as e:
             if "Timeout" in str(e):
                 # This is expected if the server isn't running.
-                print(f"API not active (Timeout), attempting to start simulator...")
+                print(
+                    f"API not active (Timeout), attempting to connect to an already started simulator..."
+                )
                 # Mark that we need to reset the socket after the timeout
                 reset_socket_needed = True
             else:
@@ -951,5 +954,5 @@ class MagicsClient:
             raise TimeoutError(
                 f"Simulator API did not become active within {timeout_seconds} seconds."
             )
-
+        time.sleep(5)  # let it load
         return True  # Return True only if api_now_active is True
