@@ -41,20 +41,27 @@ class MissionState(enum.Enum):
 # TypedDict definitions to document the structure of returned data
 class CollisionInfoDict(TypedDict, total=False):
     """Information about collisions for an agent."""
+
     robot_collisions_total: int  # Total number of collisions with other robots
-    robot_collisions_delta: int  # Change in robot collisions since last state extraction
+    robot_collisions_delta: (
+        int  # Change in robot collisions since last state extraction
+    )
     environment_collisions_total: int  # Total number of collisions with the environment
-    environment_collisions_delta: int  # Change in environment collisions since last state extraction
+    environment_collisions_delta: (
+        int  # Change in environment collisions since last state extraction
+    )
 
 
 class StateVectorInfoDict(TypedDict, total=False):
     """Information about a state vector (position and velocity)."""
+
     position: np.ndarray  # Position component of the state vector [x, y]
     velocity: np.ndarray  # Velocity component of the state vector [vx, vy]
 
 
 class VariableInfoDict(TypedDict, total=False):
     """Information about a variable in the factor graph."""
+
     index: int  # Index of the variable
     factorgraph_id: int  # ID of the factor graph this variable belongs to
     mean: List[float]  # Mean vector of the variable [x, y, vx, vy]
@@ -65,6 +72,7 @@ class VariableInfoDict(TypedDict, total=False):
 
 class ObstacleFactorInfoDict(TypedDict, total=False):
     """Information about an obstacle factor in the factor graph."""
+
     variable_index: int  # Index of the variable this factor is connected to
     sdf_value: float  # SDF value at the position, ranges from 0.0 (free space) to 1.0 (obstacle)
     position: List[float]  # Position where the SDF value was measured [x, y]
@@ -72,10 +80,13 @@ class ObstacleFactorInfoDict(TypedDict, total=False):
 
 class InterRobotFactorInfoDict(TypedDict, total=False):
     """Information about an inter-robot factor in the factor graph."""
+
     variable_index: int  # Index of the variable this factor is connected to
     external_robot_id: int  # ID of the external robot this factor connects to
     external_factorgraph_id: int  # ID of the external factor graph
-    external_variable_index: int  # Index of the variable in the external robot's factor graph
+    external_variable_index: (
+        int  # Index of the variable in the external robot's factor graph
+    )
     safety_distance: float  # Safety distance for collision avoidance
     distance_between_variables: float  # Current distance between estimated positions
     active: bool  # Whether the factor is active (called skip in Rust)
@@ -83,16 +94,20 @@ class InterRobotFactorInfoDict(TypedDict, total=False):
 
 class TrackingFactorInfoDict(TypedDict, total=False):
     """Information about a tracking factor in the factor graph."""
+
     variable_index: int  # Index of the variable this factor is connected to
     tracking_path: List[List[float]]  # Path that the robot is tracking
     tracking_index: int  # Current index in the tracking path
     projected_position: List[float]  # Projected position on the path [x, y]
     path_deviation: float  # Path deviation measurement (normalized distance)
-    distance_to_path: float  # Distance from robot to projected point on path (in world units)
+    distance_to_path: (
+        float  # Distance from robot to projected point on path (in world units)
+    )
 
 
 class DynamicFactorInfoDict(TypedDict, total=False):
     """Information about a dynamic factor in the factor graph."""
+
     from_variable_index: int  # Index of the source variable
     to_variable_index: int  # Index of the destination variable
     delta_t: float  # Time step between the variables
@@ -100,21 +115,26 @@ class DynamicFactorInfoDict(TypedDict, total=False):
 
 class FactorDetailsDict(TypedDict, total=False):
     """Detailed information about factor graph components."""
+
     variables: List[VariableInfoDict]  # Information about variables in the factor graph
     obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors
-    interrobot_factors: List[InterRobotFactorInfoDict]  # Information about inter-robot factors
+    interrobot_factors: List[
+        InterRobotFactorInfoDict
+    ]  # Information about inter-robot factors
     tracking_factors: List[TrackingFactorInfoDict]  # Information about tracking factors
     dynamic_factors: List[DynamicFactorInfoDict]  # Information about dynamic factors
 
 
 class MessageStatsDict(TypedDict, total=False):
     """Statistics about messages in the factor graph."""
+
     internal: int  # Number of internal messages
     external: int  # Number of external messages
 
 
 class FactorCountsDict(TypedDict, total=False):
     """Counts of different factor types in the factor graph."""
+
     obstacle: int  # Number of obstacle factors
     interrobot: int  # Number of interrobot factors
     dynamic: int  # Number of dynamic factors
@@ -123,14 +143,18 @@ class FactorCountsDict(TypedDict, total=False):
 
 class FactorWeightsDict(TypedDict, total=False):
     """Weights for different factor types in the factor graph."""
+
     dynamic: float  # Weight for dynamic factors (lower values, means more important)
     obstacle: float  # Weight for obstacle factors (lower values, means more important)
-    interrobot: float  # Weight for interrobot factors (lower values, means more important)
+    interrobot: (
+        float  # Weight for interrobot factors (lower values, means more important)
+    )
     tracking: float  # Weight for tracking factors (lower values, means more important)
 
 
 class FactorGraphStateDict(TypedDict, total=False):
     """State of a factor graph."""
+
     weights: FactorWeightsDict  # Current weights of the factor graph
     variable_count: int  # Number of variables in the factor graph
     factor_count: int  # Number of factors in the factor graph
@@ -142,6 +166,7 @@ class FactorGraphStateDict(TypedDict, total=False):
 
 class MissionProgressDict(TypedDict, total=False):
     """Mission progress information."""
+
     started_at: float  # Time when the mission started
     finished_at: Optional[float]  # Time when the mission finished, if completed
     active_route: int  # Index of the active route
@@ -152,12 +177,16 @@ class MissionProgressDict(TypedDict, total=False):
 
 class MissionStateDict(TypedDict, total=False):
     """Current mission state of an agent."""
+
     type: MissionState  # The type of mission state (IDLE, ACTIVE, COMPLETED)
-    waiting_for_waypoints: NotRequired[bool]  # Whether the agent is waiting for waypoints (only for IDLE state)
+    waiting_for_waypoints: NotRequired[
+        bool
+    ]  # Whether the agent is waiting for waypoints (only for IDLE state)
 
 
 class AgentStateDict(TypedDict, total=False):
     """State of an agent in the simulation."""
+
     agent_id: int  # ID of the agent
     factorgraph_id: int  # ID of the factor graph
     position: np.ndarray  # Position of the agent [x, y]
@@ -174,14 +203,19 @@ class AgentStateDict(TypedDict, total=False):
     next_waypoint: Optional[StateVectorInfoDict]  # Information about the next waypoint
     goal_point: Optional[np.ndarray]  # Position of the goal point [x, y]
     mission_progress: MissionProgressDict  # Mission progress information
-    factor_details: FactorDetailsDict  # Detailed information about factor graph components
+    factor_details: (
+        FactorDetailsDict  # Detailed information about factor graph components
+    )
     collision_info: CollisionInfoDict  # Information about collisions
 
 
 class EnvironmentStateDict(TypedDict, total=False):
     """State of the environment in the simulation."""
+
     obstacles: np.ndarray  # Positions of obstacles in the environment
-    boundaries: Dict[str, np.ndarray]  # Boundaries of the environment {'min': [x,y], 'max': [x,y]}
+    boundaries: Dict[
+        str, np.ndarray
+    ]  # Boundaries of the environment {'min': [x,y], 'max': [x,y]}
     total_agents: int  # Total number of agents in the environment
     agent_density_map: Optional[List[float]]  # Optional agent density map
     sdf_resolution: Optional[Tuple[int, int]]  # Optional SDF resolution (width, height)
@@ -207,8 +241,8 @@ class MagicsClient:
         host: str = "localhost",
         port: int = 5555,
         timeout: int = 5000,
-            magics_root_dir: Optional[str] = None,
-            connect_on_init: bool = True, # Allow delaying connection
+        magics_root_dir: Optional[str] = None,
+        connect_on_init: bool = True,  # Allow delaying connection
     ):
         """
         Initialize the Magics client.
@@ -238,9 +272,11 @@ class MagicsClient:
         if self._connected:
             # print("Debug: Closing existing socket before reconnecting...") # Optional debug
             # Ensure the socket is properly closed before recreating
-            self.socket.setsockopt(zmq.LINGER, 0) # Discard pending messages immediately
+            self.socket.setsockopt(
+                zmq.LINGER, 0
+            )  # Discard pending messages immediately
             self.socket.close()
-            self._connected = False # Mark as disconnected
+            self._connected = False  # Mark as disconnected
 
         # Always recreate the socket to ensure a fresh state
         # print("Debug: Recreating socket...") # Optional debug
@@ -255,8 +291,9 @@ class MagicsClient:
             self._connected = False
             # Close the newly created socket if connection fails
             self.socket.close()
-            raise MagicsError(f"Failed to connect socket to {self.connection_string}: {e}") from e
-
+            raise MagicsError(
+                f"Failed to connect socket to {self.connection_string}: {e}"
+            ) from e
 
     def _find_latest_executable(self, project_root: Path) -> Optional[Path]:
         """Finds the most recently compiled magics executable within the project root."""
@@ -528,21 +565,21 @@ class MagicsClient:
     def reset(self) -> None:
         """
         Reset the simulation.
-        
+
         This reloads the current environment, resetting all robots and the simulation state.
         """
         self._send_request("Reset")
-        
+
     def load_environment(self, name: str) -> None:
         """
         Load a specific environment by name.
-        
+
         This loads a different environment configuration, replacing the current one.
         The environment must exist in the config/scenarios directory.
-        
+
         Args:
             name: The name of the environment to load (e.g., "CircleExperiment", "JunctionTwoway")
-        
+
         Raises:
             MagicsError: If the environment with the specified name is not found
         """
@@ -705,54 +742,57 @@ class MagicsClient:
         """
         self._send_request("RemoveAgent", agent_id=agent_id)
 
-
     def close(self) -> None:
         """
         Close the connection cleanly, handling potential ZMQ state issues.
         """
         # print("Debug: Closing client...") # Optional debug
         socket_closed = False
-        if hasattr(self, 'socket') and self.socket:
+        if hasattr(self, "socket") and self.socket:
             if not self.socket.closed:
                 try:
                     # print("Debug: Setting LINGER to 0 and closing socket...") # Optional debug
-                    self.socket.setsockopt(zmq.LINGER, 0) # Ensure quick close, discard pending
+                    self.socket.setsockopt(
+                        zmq.LINGER, 0
+                    )  # Ensure quick close, discard pending
                     self.socket.close()
                     socket_closed = True
                     # print("Debug: Socket closed.") # Optional debug
                 except zmq.ZMQError as e:
                     # Log error but proceed to context termination if possible
-                    print(f"Warning: Error closing socket: {e} (errno: {e.errno}). Attempting context termination.")
+                    print(
+                        f"Warning: Error closing socket: {e} (errno: {e.errno}). Attempting context termination."
+                    )
                     # If error is EFSM, the socket might already be unusable/closed implicitly
                     if e.errno == zmq.EFSM:
-                         socket_closed = True # Treat as closed if in wrong state
+                        socket_closed = True  # Treat as closed if in wrong state
             else:
                 # print("Debug: Socket already closed.") # Optional debug
                 socket_closed = True
         else:
             # print("Debug: No socket attribute or socket is None.") # Optional debug
-            socket_closed = True # Nothing to close
+            socket_closed = True  # Nothing to close
 
-        self._connected = False # Mark as disconnected regardless of close success
+        self._connected = False  # Mark as disconnected regardless of close success
 
         context_terminated = False
-        if hasattr(self, 'context') and self.context:
-             if not self.context.closed:
+        if hasattr(self, "context") and self.context:
+            if not self.context.closed:
                 try:
                     # print("Debug: Terminating context...") # Optional debug
                     # Add a very small delay, sometimes helps ZMQ cleanup
-                    # time.sleep(0.01) 
+                    # time.sleep(0.01)
                     self.context.term()
                     context_terminated = True
                     # print("Debug: Context terminated.") # Optional debug
                 except zmq.ZMQError as e:
-                    print(f"Warning: Error terminating context: {e}") # Log error
-             else:
+                    print(f"Warning: Error terminating context: {e}")  # Log error
+            else:
                 # print("Debug: Context already terminated.") # Optional debug
                 context_terminated = True
         else:
             # print("Debug: No context attribute or context is None.") # Optional debug
-            context_terminated = True # Nothing to terminate
+            context_terminated = True  # Nothing to terminate
 
     def start_sim(
         self,
@@ -788,7 +828,7 @@ class MagicsClient:
             if self.is_api_active():
                 print("Simulator API is already active.")
                 initial_check_passed = True
-                return True # Already active, nothing more to do
+                return True  # Already active, nothing more to do
         except MagicsError as e:
             if "Timeout" in str(e):
                 # This is expected if the server isn't running.
@@ -805,7 +845,7 @@ class MagicsClient:
         # If the initial check timed out, reset the socket connection
         if reset_socket_needed:
             print("Resetting socket connection after initial timeout...")
-            self._connect_socket() # Reconnect to clear potential bad state
+            self._connect_socket()  # Reconnect to clear potential bad state
 
         # --- Start Simulator ---
         if self.magics_root_dir is None:
@@ -831,12 +871,17 @@ class MagicsClient:
         if initial_scenario:
             print(f"  with initial scenario: {initial_scenario}")
             cmd_args.extend(["--initial-scenario", initial_scenario])
-        
+
         try:
-            # Use Popen for non-blocking execution with arguments
-            subprocess.Popen(cmd_args, cwd=magics_root_path)
+            # Use Popen for non-blocking execution, redirecting stdout and stderr (no message from the sim)
+            subprocess.Popen(
+                cmd_args,
+                cwd=magics_root_path,
+                stdout=subprocess.DEVNULL,  # Redirect standard output
+                stderr=subprocess.DEVNULL,  # Redirect standard error
+            )
             # Give the process a moment to start up
-            time.sleep(1.0) # Increased sleep slightly to allow scenario loading
+            time.sleep(1.0)  # Increased sleep slightly to allow scenario loading
         except Exception as e:
             raise MagicsError(f"Failed to start simulator process: {e}") from e
 
@@ -849,34 +894,40 @@ class MagicsClient:
                 if self.is_api_active():
                     print("Simulator API activated successfully.")
                     api_now_active = True
-                    break # Exit the loop immediately on success
+                    break  # Exit the loop immediately on success
             except MagicsError as e:
                 # Server might still be initializing, or temporarily unreachable.
                 if "Timeout" in str(e):
                     # If a poll attempt times out, try resetting the connection for the next try
                     # print("Debug: Poll timed out, resetting socket...") # Optional debug
                     try:
-                        self._connect_socket() # Reset connection before next poll
+                        self._connect_socket()  # Reset connection before next poll
                     except MagicsError as conn_e:
-                        print(f"Warning: Failed to reconnect socket during polling after timeout: {conn_e}")
+                        print(
+                            f"Warning: Failed to reconnect socket during polling after timeout: {conn_e}"
+                        )
                         # Continue polling, maybe it recovers later
                 else:
                     # Log other MagicsErrors during polling but continue
                     print(f"Warning: MagicsError during polling: {e}")
-                pass # Continue polling after handling MagicsError
+                pass  # Continue polling after handling MagicsError
             except zmq.ZMQError as e:
-                 # Catch potential ZMQ errors during polling (e.g., if server crashes)
-                 print(f"Warning: ZMQError during polling: {e}. Attempting to reset connection.")
-                 try:
-                     self._connect_socket() # Attempt to reset connection
-                 except MagicsError as conn_e:
-                     print(f"Warning: Failed to reconnect socket after ZMQError: {conn_e}")
-                     # Continue polling after failed reset attempt
-                 pass # Continue polling after handling ZMQError
+                # Catch potential ZMQ errors during polling (e.g., if server crashes)
+                print(
+                    f"Warning: ZMQError during polling: {e}. Attempting to reset connection."
+                )
+                try:
+                    self._connect_socket()  # Attempt to reset connection
+                except MagicsError as conn_e:
+                    print(
+                        f"Warning: Failed to reconnect socket after ZMQError: {conn_e}"
+                    )
+                    # Continue polling after failed reset attempt
+                pass  # Continue polling after handling ZMQError
 
         if not api_now_active:
             raise TimeoutError(
                 f"Simulator API did not become active within {timeout_seconds} seconds."
             )
-        
-        return True # Return True only if api_now_active is True
+
+        return True  # Return True only if api_now_active is True
