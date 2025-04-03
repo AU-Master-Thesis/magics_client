@@ -641,6 +641,28 @@ class MagicsClient:
 
         self._send_request("SetSimulationHz", hz=hz)
 
+    def get_current_scenario(self) -> Optional[str]:
+        """
+        Get the name of the currently loaded scenario.
+
+        Returns:
+            The name of the current scenario as a string, or None if no scenario is loaded
+            or the information is unavailable.
+        """
+        data = self._send_request("GetCurrentScenario")
+
+        if not data:
+            # Consider returning None or raising a specific error if no data is expected
+            return None
+            # raise MagicsError("No data returned from get_current_scenario")
+
+        if "type" not in data or data["type"] != "CurrentScenario":
+            raise MagicsError(f"Invalid response format for get_current_scenario: {data}")
+
+        # The content itself is Option<String> from Rust, which becomes None or str here
+        return data.get("content")
+
+
     def spawn_agent(
         self,
         initial_position: List[float],

@@ -11,7 +11,7 @@ import enum
 import traceback
 import numpy as np
 import zmq
-from adaptive_gbp.magics_client.magics_client import (
+from magics_client import (
     MagicsClient,
     MagicsError,
     PlanningStrategy,
@@ -155,6 +155,17 @@ def handle_save_env_state(client: MagicsClient, args: list):
     write_json_to_file(env_state, "environment_state.json")
 
 
+def handle_get_scenario(client: MagicsClient, args: list):
+    """Gets the name of the currently loaded scenario."""
+    start = time.perf_counter()
+    scenario_name = client.get_current_scenario()
+    end = time.perf_counter()
+    if scenario_name:
+        print(f"Current scenario ({((end - start) * 1000):.2f} ms): {scenario_name}")
+    else:
+        print(f"No scenario currently loaded ({((end - start) * 1000):.2f} ms).")
+
+
 def handle_help(client: MagicsClient, args: list):
     """Prints this help message."""
     print("Available commands:")
@@ -169,6 +180,7 @@ def handle_help(client: MagicsClient, args: list):
     print(
         "  save_env_state (ses)  : Get and save current environment state to output/environment_state.json."
     )
+    print("  get_scenario (gs)   : Get the name of the currently loaded scenario.")
     print("  help (h)         : Show this help message.")
     print("  quit (q) / exit  : Exit the controller.")
 
@@ -196,6 +208,8 @@ commands = {
     "ges": handle_get_env_state,
     "save_env_state": handle_save_env_state,
     "ses": handle_save_env_state,
+    "get_scenario": handle_get_scenario,
+    "gs": handle_get_scenario,
     "help": handle_help,
     "h": handle_help,
     "quit": handle_quit,
