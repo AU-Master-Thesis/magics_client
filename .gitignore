@@ -1,0 +1,37 @@
+/target
+.direnv/
+**/dist/
+*.wasm
+
+*.log
+# pixi environments
+.pixi
+
+*.dot
+
+# factorgraphs.png
+# screenshot_*.png
+**/*.png
+!**/assets/**/*
+
+**/*rustc-ice*
+
+.bacon-locations
+
+perf*
+dhat-heap.json
+flamegraphs/*
+
+
+!results/*.json
+
+*.html
+
+experiments/
+
+**/__pycache__/
+
+.venv
+*.egg-info
+__pycache__/*
+*/.venv
