@@ -264,6 +264,7 @@ class MagicsClient:
         self.magics_root_dir = magics_root_dir
         self.connection_string = f"tcp://{self.host}:{self.port}"
         self._connected = False
+        self.verbose = False
         if connect_on_init:
             self._connect_socket()
 
@@ -330,6 +331,8 @@ class MagicsClient:
         """
         # Create request with nested command structure
         request = {"command": {"command": command}, "request_id": str(uuid.uuid4())}
+        if self.verbose:
+            print(f"Request: {command}")
 
         # Add parameters if provided
         if parameters:
@@ -337,6 +340,10 @@ class MagicsClient:
 
         # Convert request to JSON
         request_json = json.dumps(request)
+
+        # debugging.
+        # if command == "SetFactorWeights":
+        #     print(request_json)
 
         # Send request
         self.socket.send_string(request_json)
@@ -561,7 +568,6 @@ class MagicsClient:
         Step the simulation forward by one frame.
         """
         self._send_request("Step")
-        print("step done")
 
     def reset(self) -> None:
         """
@@ -584,7 +590,11 @@ class MagicsClient:
         Raises:
             MagicsError: If the environment with the specified name is not found
         """
-        self._send_request("LoadEnvironment", name=name)
+        if name == self.get_current_scenario():
+            print(f"{name} environment is already loaded, reseting")
+            self.reset()
+        else:
+            self._send_request("LoadEnvironment", name=name)
 
     def is_api_active(self) -> bool:
         """
@@ -695,11 +705,12 @@ class MagicsClient:
             # raise MagicsError("No data returned from get_current_scenario")
 
         if "type" not in data or data["type"] != "CurrentScenario":
-            raise MagicsError(f"Invalid response format for get_current_scenario: {data}")
+            raise MagicsError(
+                f"Invalid response format for get_current_scenario: {data}"
+            )
 
         # The content itself is Option<String> from Rust, which becomes None or str here
         return data.get("content")
-
 
     def spawn_agent(
         self,
