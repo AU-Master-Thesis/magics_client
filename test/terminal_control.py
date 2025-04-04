@@ -96,9 +96,35 @@ def handle_step(client: MagicsClient, args: list):
 
 
 def handle_reset(client: MagicsClient, args: list):
-    """Resets the simulation."""
-    client.reset()
-    print("Simulation reset.")
+    """Resets the simulation, optionally with a seed."""
+    seed = None
+    if args:
+        try:
+            seed = int(args[0])
+            # Optional: Add validation for u64 range if desired, though client does it too
+            # if not (0 <= seed <= 18446744073709551615):
+            #     print("Error: Seed must be a valid unsigned 64-bit integer.")
+            #     return
+            print(f"Resetting simulation with seed: {seed}")
+        except ValueError:
+            print(f"Error: Invalid seed '{args[0]}'. Resetting without specific seed.")
+            seed = None # Ensure seed is None if parsing fails
+        except Exception as e:
+            print(f"An unexpected error occurred parsing seed: {e}")
+            return # Don't proceed with reset if there's an unexpected error
+    else:
+        print("Resetting simulation without specific seed.")
+
+    try:
+        client.reset(seed=seed)
+        print("Simulation reset complete.")
+    except ValueError as e: # Catch potential seed range error from client
+        print(f"Error during reset: {e}")
+    except MagicsError as e:
+        print(f"API Error during reset: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred during reset: {e}")
+        traceback.print_exc()
 
 
 def handle_iterations(client: MagicsClient, args: list):
@@ -170,7 +196,7 @@ def handle_help(client: MagicsClient, args: list):
     """Prints this help message."""
     print("Available commands:")
     print("  step (s) [N]     : Step the simulation forward N times (default: 1).")
-    print("  reset (r)        : Reset the simulation.")
+    print("  reset (r) [SEED] : Reset the simulation, optionally with an integer seed.")
     print("  iterations (i) N : Set the number of GBP iterations per step to N.")
     print("  get_agent_state (gas) : Get and print current agent states.")
     print(

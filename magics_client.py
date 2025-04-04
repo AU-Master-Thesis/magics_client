@@ -580,12 +580,13 @@ class MagicsClient:
                                   to ensure reproducibility. If None, the simulation
                                   will reset with random initialization.
         """
-        params = {}
-        if seed is not None:
-            # Ensure seed is within u64 range if necessary, Python ints have arbitrary precision
-            if not (0 <= seed <= 18446744073709551615):
-                 raise ValueError("Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)")
-            params["seed"] = seed
+        # Ensure seed is within u64 range if provided
+        if seed is not None and not (0 <= seed <= 18446744073709551615):
+             raise ValueError("Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)")
+
+        # Always include the 'seed' key in parameters, even if None,
+        # to ensure the 'parameters' field exists in the JSON for this command.
+        params = {"seed": seed}
         self._send_request("Reset", **params)
 
     def load_environment(self, name: str) -> None:
