@@ -9,6 +9,7 @@ import json
 import time
 import enum
 import traceback
+import readline  # Import readline for command history
 import numpy as np
 import zmq
 from magics_client import (
@@ -108,17 +109,17 @@ def handle_reset(client: MagicsClient, args: list):
             print(f"Resetting simulation with seed: {seed}")
         except ValueError:
             print(f"Error: Invalid seed '{args[0]}'. Resetting without specific seed.")
-            seed = None # Ensure seed is None if parsing fails
+            seed = None  # Ensure seed is None if parsing fails
         except Exception as e:
             print(f"An unexpected error occurred parsing seed: {e}")
-            return # Don't proceed with reset if there's an unexpected error
+            return  # Don't proceed with reset if there's an unexpected error
     else:
         print("Resetting simulation without specific seed.")
 
     try:
         client.reset(seed=seed)
         print("Simulation reset complete.")
-    except ValueError as e: # Catch potential seed range error from client
+    except ValueError as e:  # Catch potential seed range error from client
         print(f"Error during reset: {e}")
     except MagicsError as e:
         print(f"API Error during reset: {e}")
@@ -192,6 +193,92 @@ def handle_get_scenario(client: MagicsClient, args: list):
         print(f"No scenario currently loaded ({((end - start) * 1000):.2f} ms).")
 
 
+def handle_squares(client: MagicsClient, args: list):
+    """Gets the available formation squares and prints them."""
+    start = time.perf_counter()
+    try:
+        squares = client.get_available_squares()
+        end = time.perf_counter()
+        print(f"Available Squares ({((end - start) * 1000):.2f} ms):")
+        if squares:
+            for sq in squares:
+                min_dist = (
+                    f", MinDist: {sq.get('min_distance')}"
+                    if sq.get("min_distance") is not None
+                    else ""
+                )
+                print(
+                    f"  - ID: {sq.get('id', 'N/A')}, Type: {sq.get('square_type', 'N/A')}, Min: {sq.get('min', 'N/A')}, Max: {sq.get('max', 'N/A')}{min_dist}"
+                )
+        else:
+            print("  No squares defined in current formation.")
+    except MagicsError as e:
+        print(f"API Error getting squares: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred getting squares: {e}")
+        traceback.print_exc()
+
+
+def handle_replan(client: MagicsClient, args: list):
+    """Replans completed agents. Usage: replan [strategy=CompleteRandom|RandomSquares] [square_id=ID] [avoid_current=true|false]"""
+    replan_args = {
+        "strategy": "RandomSquares",  # Default strategy
+        "square_id": None,
+        "avoid_current_square": True,  # Default avoid
+    }
+    try:
+        for part in args:
+            if "=" in part:
+                key, value = part.split("=", 1)
+                key = key.lower()  # Case-insensitive keys
+                if key == "strategy":
+                    if value not in ["CompleteRandom", "RandomSquares"]:
+                        raise ValueError(
+                            "Invalid strategy. Use 'CompleteRandom' or 'RandomSquares'."
+                        )
+                    replan_args["strategy"] = value
+                elif key == "square_id":
+                    replan_args["square_id"] = value
+                elif key == "avoid_current":
+                    if value.lower() == "true":
+                        replan_args["avoid_current_square"] = True
+                    elif value.lower() == "false":
+                        replan_args["avoid_current_square"] = False
+                    else:
+                        raise ValueError(
+                            "Invalid value for avoid_current. Use 'true' or 'false'."
+                        )
+                else:
+                    print(f"Warning: Unknown replan parameter '{key}'")
+            else:
+                print(
+                    f"Warning: Ignoring invalid replan parameter '{part}'. Use key=value format."
+                )
+
+        start = time.perf_counter()
+        client.replan_completed_agents(**replan_args)
+        end = time.perf_counter()
+        print(
+            f"Replanned completed agents ({((end - start) * 1000):.2f} ms) using strategy: {replan_args['strategy']}"
+        )
+        if replan_args["strategy"] == "RandomSquares":
+            print(
+                f"  Square ID: {replan_args['square_id'] if replan_args['square_id'] else 'Random'}"
+            )
+            print(f"  Avoid Current Square: {replan_args['avoid_current_square']}")
+
+    except ValueError as e:
+        print(f"Invalid format: {e}")
+        print(
+            "Usage: replan [strategy=CompleteRandom|RandomSquares] [square_id=ID] [avoid_current=true|false]"
+        )
+    except MagicsError as e:
+        print(f"API Error replanning agents: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred during replan: {e}")
+        traceback.print_exc()
+
+
 def handle_help(client: MagicsClient, args: list):
     """Prints this help message."""
     print("Available commands:")
@@ -207,8 +294,12 @@ def handle_help(client: MagicsClient, args: list):
         "  save_env_state (ses)  : Get and save current environment state to output/environment_state.json."
     )
     print("  get_scenario (gs)   : Get the name of the currently loaded scenario.")
-    print("  help (h)         : Show this help message.")
-    print("  quit (q) / exit  : Exit the controller.")
+    print("  squares (sq)        : List available formation squares.")
+    print(
+        "  replan (rp) [opts]  : Replan completed agents (e.g., strategy=RandomSquares square_id=goal_0)."
+    )
+    print("  help (h)            : Show this help message.")
+    print("  quit (q) / exit     : Exit the controller.")
 
 
 def handle_quit(client: MagicsClient, args: list):
@@ -236,6 +327,10 @@ commands = {
     "ses": handle_save_env_state,
     "get_scenario": handle_get_scenario,
     "gs": handle_get_scenario,
+    "squares": handle_squares,
+    "sq": handle_squares,
+    "replan": handle_replan,
+    "rp": handle_replan,
     "help": handle_help,
     "h": handle_help,
     "quit": handle_quit,
@@ -243,11 +338,34 @@ commands = {
     "exit": handle_quit,
 }
 
+# --- History File Setup ---
+HISTFILE = os.path.expanduser("~/.magics_terminal_history")
+
+
+def setup_readline_history():
+    """Loads history from HISTFILE and sets up saving on exit."""
+    if hasattr(readline, "read_history_file"):
+        try:
+            readline.read_history_file(HISTFILE)
+            # Default history length is -1 (infinite), which is fine
+            # readline.set_history_length(1000) # Optionally limit history size
+        except FileNotFoundError:
+            pass  # No history file yet
+        except Exception as e:
+            print(f"Warning: Could not load history file '{HISTFILE}': {e}")
+
+        import atexit
+
+        atexit.register(readline.write_history_file, HISTFILE)
+        print(f"Command history will be saved to {HISTFILE}")
+
+
 # --- Main Execution ---
 
 
 def main():
     client = None
+    setup_readline_history()  # Setup history loading/saving
     try:
         print("Connecting to Magics server...")
         # Increased timeout for potentially long operations

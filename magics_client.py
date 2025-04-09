@@ -788,6 +788,62 @@ class MagicsClient:
         """
         self._send_request("RemoveAgent", agent_id=agent_id)
 
+    def get_available_squares(self) -> List[Dict[str, Any]]:
+        """
+        Get all available squares defined in the current formation configuration.
+
+        Returns:
+            List of square definitions, where each square is a dictionary:
+            {
+                "id": str,          # Unique identifier for the square (e.g., "initial_0", "waypoint_0_1")
+                "square_type": str, # "InitialPosition" or "Waypoint"
+                "min": [float, float], # Minimum corner [x, y]
+                "max": [float, float], # Maximum corner [x, y]
+                "min_distance": Optional[float] # Minimum distance between points (if specified)
+            }
+        """
+        data = self._send_request("GetAvailableSquares")
+
+        if not data:
+            raise MagicsError("No data returned from get_available_squares")
+        if "type" not in data or data["type"] != "AvailableSquares":
+            raise MagicsError(f"Invalid response format for get_available_squares: {data}")
+
+        return data.get("content", [])
+
+    def replan_completed_agents(
+        self,
+        strategy: str = "CompleteRandom",
+        square_id: Optional[str] = None,
+        avoid_current_square: bool = True,
+    ) -> None:
+        """
+        Replan all completed agents with new goals based on the specified strategy.
+
+        Args:
+            strategy: The strategy to use for generating new goals.
+                      Options: "CompleteRandom", "RandomSquares".
+            square_id: The ID of a specific square to use when strategy is "RandomSquares".
+                       If None, a random eligible square will be chosen.
+            avoid_current_square: If True and using "RandomSquares" without a specific
+                                  square_id, the agent's current target square will be
+                                  avoided when selecting a new random square.
+
+        Raises:
+            MagicsError: If the server returns an error.
+            ValueError: If the strategy is invalid.
+        """
+        if strategy not in ["CompleteRandom", "RandomSquares"]:
+            raise ValueError(f"Invalid replan strategy: {strategy}")
+
+        params = {
+            "strategy": strategy,
+            "square_id": square_id,
+            "avoid_current_square": avoid_current_square,
+        }
+        self._send_request("ReplanCompletedAgents", **params)
+
+
     def close(self) -> None:
         """
         Close the connection cleanly, handling potential ZMQ state issues.
