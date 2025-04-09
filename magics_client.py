@@ -558,10 +558,83 @@ class MagicsClient:
                     "interrobot": 1.0,   # Weight for inter-robot factors
                     "tracking": 1.0      # Weight for tracking factors
                 }
+                All four weight types must be specified.
             agent_id: Optional agent ID for per-agent weights. If None, the weights are applied system-wide.
                      If provided, the weights are only applied to the specified agent.
+                     
+        Raises:
+            ValueError: If any required weight keys are missing
         """
-        self._send_request("SetFactorWeights", weights=weights, agent_id=agent_id)
+        # Validate that all required weight keys are present
+        required_keys = ["dynamic", "obstacle", "interrobot", "tracking"]
+        missing_keys = [key for key in required_keys if key not in weights]
+        if missing_keys:
+            raise ValueError(f"Missing required weight keys: {', '.join(missing_keys)}. All weight types (dynamic, obstacle, interrobot, tracking) must be specified.")
+        
+        # Extract just the numeric part of the agent ID if it's a string
+        processed_agent_id = agent_id
+        if isinstance(agent_id, str):
+            import re
+            match = re.match(r'(\d+)', agent_id)
+            if match:
+                processed_agent_id = int(match.group(1))
+            else:
+                raise ValueError(f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits.")
+        
+        self._send_request("SetFactorWeights", weights=weights, agent_id=processed_agent_id)
+        
+    def set_batch_factor_weights(
+        self, agent_weights: Dict[int, FactorWeightsDict], default_weights: Optional[FactorWeightsDict] = None
+    ) -> None:
+        """
+        Set factor graph weights for multiple agents at once.
+        
+        Args:
+            agent_weights: Dictionary mapping agent IDs to their weights.
+                Each weights dictionary should have the structure:
+                {
+                    "dynamic": 1.0,      # Weight for dynamic factors
+                    "obstacle": 1.0,     # Weight for obstacle factors
+                    "interrobot": 1.0,   # Weight for inter-robot factors
+                    "tracking": 1.0      # Weight for tracking factors
+                }
+            default_weights: Optional weights to apply to all other agents.
+                If provided, these weights will be applied to any agent not
+                explicitly specified in agent_weights.
+                
+        Raises:
+            ValueError: If any required weight keys are missing
+        """
+        # Validate all weight dictionaries
+        required_keys = ["dynamic", "obstacle", "interrobot", "tracking"]
+        
+        # Process agent_weights
+        processed_agent_weights = {}
+        for agent_id, weights in agent_weights.items():
+            # Check for missing keys
+            missing_keys = [key for key in required_keys if key not in weights]
+            if missing_keys:
+                raise ValueError(f"Missing required weight keys for agent {agent_id}: {', '.join(missing_keys)}. All weight types must be specified.")
+            
+            # Process agent_id if it's a string
+            processed_id = agent_id
+            if isinstance(agent_id, str):
+                import re
+                match = re.match(r'(\d+)', agent_id)
+                if match:
+                    processed_id = int(match.group(1))
+                else:
+                    raise ValueError(f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits.")
+            
+            processed_agent_weights[processed_id] = weights
+        
+        # Validate default_weights if provided
+        if default_weights is not None:
+            missing_keys = [key for key in required_keys if key not in default_weights]
+            if missing_keys:
+                raise ValueError(f"Missing required weight keys in default_weights: {', '.join(missing_keys)}. All weight types must be specified.")
+        
+        self._send_request("SetBatchFactorWeights", agent_weights=processed_agent_weights, default_weights=default_weights)
 
     def step(self) -> None:
         """
@@ -582,7 +655,9 @@ class MagicsClient:
         """
         # Ensure seed is within u64 range if provided
         if seed is not None and not (0 <= seed <= 18446744073709551615):
-             raise ValueError("Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)")
+            raise ValueError(
+                "Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)"
+            )
 
         # Always include the 'seed' key in parameters, even if None,
         # to ensure the 'parameters' field exists in the JSON for this command.
@@ -807,7 +882,9 @@ class MagicsClient:
         if not data:
             raise MagicsError("No data returned from get_available_squares")
         if "type" not in data or data["type"] != "AvailableSquares":
-            raise MagicsError(f"Invalid response format for get_available_squares: {data}")
+            raise MagicsError(
+                f"Invalid response format for get_available_squares: {data}"
+            )
 
         return data.get("content", [])
 
@@ -842,7 +919,6 @@ class MagicsClient:
             "avoid_current_square": avoid_current_square,
         }
         self._send_request("ReplanCompletedAgents", **params)
-
 
     def close(self) -> None:
         """

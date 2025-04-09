@@ -219,6 +219,147 @@ def handle_squares(client: MagicsClient, args: list):
         traceback.print_exc()
 
 
+def handle_set_weights(client: MagicsClient, args: list):
+    """Sets factor weights for an agent or all agents.
+    Usage: set_weights [agent_id=ID or all] d=X o=Y ir=Z t=W
+
+    Examples:
+      set_weights all d=0.5 o=1.0 ir=2.0 t=1.5
+      set_weights 3 d=0.8 ir=1.2
+
+    Shorthand notation:
+      d = dynamic factor weight
+      o = obstacle factor weight
+      ir = interrobot factor weight
+      t = tracking factor weight
+    """
+    if not args:
+        print("Usage: set_weights [agent_id=ID or all] d=X o=Y ir=Z t=W")
+        return
+
+    # Parse agent ID (first argument)
+    agent_id = None
+    if args[0].lower() == "all":
+        print("Setting weights for all agents (system-wide)")
+        weight_args = args[1:]
+    else:
+        try:
+            agent_id = int(args[0])
+            print(f"Setting weights for agent ID: {agent_id}")
+            weight_args = args[1:]
+        except ValueError:
+            # If first arg is not "all" or a number, assume it's a weight parameter
+            print("No agent ID specified, defaulting to all agents (system-wide)")
+            weight_args = args
+
+    # Get current weights to fill in any missing values
+    try:
+        # Get the current agent states to retrieve existing weights
+        agent_states = client.get_agent_state()
+
+        # Get current weights from the first agent (or the specific agent if specified)
+        if agent_id is not None and str(agent_id) in agent_states:
+            current_weights = agent_states[str(agent_id)]["factor_graph_state"][
+                "weights"
+            ]
+        elif agent_states:
+            # Use the first agent's weights as a reference
+            first_agent_id = next(iter(agent_states))
+            current_weights = agent_states[first_agent_id]["factor_graph_state"][
+                "weights"
+            ]
+        else:
+            # Default weights if no agents exist
+            current_weights = {
+                "dynamic": 1.0,
+                "obstacle": 1.0,
+                "interrobot": 1.0,
+                "tracking": 1.0,
+            }
+
+        print(f"Current weights: {current_weights}")
+    except Exception as e:
+        print(f"Warning: Could not retrieve current weights: {e}")
+        # Default weights if we can't get current ones
+        current_weights = {
+            "dynamic": 1.0,
+            "obstacle": 1.0,
+            "interrobot": 1.0,
+            "tracking": 1.0,
+        }
+
+    # Parse weight parameters
+    weights = {
+        "dynamic": current_weights.get("dynamic", 1.0),
+        "obstacle": current_weights.get("obstacle", 1.0),
+        "interrobot": current_weights.get("interrobot", 1.0),
+        "tracking": current_weights.get("tracking", 1.0),
+    }
+
+    # Update with user-specified weights
+    for arg in weight_args:
+        if "=" not in arg:
+            print(f"Warning: Ignoring invalid parameter '{arg}'. Use key=value format.")
+            continue
+
+        key, value = arg.split("=", 1)
+        key = key.lower()
+
+        try:
+            weight_value = float(value)
+            if weight_value <= 0:
+                print(
+                    f"Warning: Weight values should be positive. Got {key}={weight_value}"
+                )
+        except ValueError:
+            print(
+                f"Warning: Ignoring invalid weight value '{value}' for '{key}'. Must be a number."
+            )
+            continue
+
+        # Map shorthand keys to full names
+        if key == "d":
+            weights["dynamic"] = weight_value
+        elif key == "o":
+            weights["obstacle"] = weight_value
+        elif key == "ir":
+            weights["interrobot"] = weight_value
+        elif key == "t":
+            weights["tracking"] = weight_value
+        elif key in ["dynamic", "obstacle", "interrobot", "tracking"]:
+            weights[key] = weight_value
+        else:
+            print(f"Warning: Unknown weight type '{key}'. Valid types: d, o, ir, t")
+
+    # Print debug information about what we're sending
+    print("Setting the following weights:")
+    for key, value in weights.items():
+        print(f"  {key}: {value}")
+        
+    # Note: The client now validates that all required weight keys are present
+    # If any are missing, it will raise a ValueError
+
+    # Send the weight update
+    try:
+        start = time.perf_counter()
+        client.set_factor_weights(weights, agent_id)
+        end = time.perf_counter()
+        print(f"Weight update sent successfully ({((end - start) * 1000):.2f} ms)")
+
+        # Step the simulation to apply changes
+        print("Stepping simulation to apply changes...")
+        client.step()
+        print("Step complete. Changes should now be applied.")
+        print(
+            "TIP: Click on an agent in the simulation to see the updated weights in the terminal output."
+        )
+    except MagicsError as e:
+        print(f"API Error setting weights: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        traceback.print_exc()
+
+
 def handle_replan(client: MagicsClient, args: list):
     """Replans completed agents. Usage: replan [strategy=CompleteRandom|RandomSquares] [square_id=ID] [avoid_current=true|false]"""
     replan_args = {
@@ -298,6 +439,9 @@ def handle_help(client: MagicsClient, args: list):
     print(
         "  replan (rp) [opts]  : Replan completed agents (e.g., strategy=RandomSquares square_id=goal_0)."
     )
+    print(
+        "  set_weights (sw) [agent_id|all] d=X o=Y ir=Z t=W : Set factor weights for an agent or all agents."
+    )
     print("  help (h)            : Show this help message.")
     print("  quit (q) / exit     : Exit the controller.")
 
@@ -331,6 +475,8 @@ commands = {
     "sq": handle_squares,
     "replan": handle_replan,
     "rp": handle_replan,
+    "set_weights": handle_set_weights,
+    "sw": handle_set_weights,
     "help": handle_help,
     "h": handle_help,
     "quit": handle_quit,
