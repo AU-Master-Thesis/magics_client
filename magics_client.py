@@ -582,7 +582,9 @@ class MagicsClient:
         """
         # Ensure seed is within u64 range if provided
         if seed is not None and not (0 <= seed <= 18446744073709551615):
-             raise ValueError("Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)")
+            raise ValueError(
+                "Seed must be a valid unsigned 64-bit integer (0 to 2^64 - 1)"
+            )
 
         # Always include the 'seed' key in parameters, even if None,
         # to ensure the 'parameters' field exists in the JSON for this command.
@@ -807,13 +809,15 @@ class MagicsClient:
         if not data:
             raise MagicsError("No data returned from get_available_squares")
         if "type" not in data or data["type"] != "AvailableSquares":
-            raise MagicsError(f"Invalid response format for get_available_squares: {data}")
+            raise MagicsError(
+                f"Invalid response format for get_available_squares: {data}"
+            )
 
         return data.get("content", [])
 
     def replan_completed_agents(
         self,
-        strategy: str = "CompleteRandom",
+        strategy: str = "RandomSquares",
         square_id: Optional[str] = None,
         avoid_current_square: bool = True,
     ) -> None:
@@ -842,7 +846,6 @@ class MagicsClient:
             "avoid_current_square": avoid_current_square,
         }
         self._send_request("ReplanCompletedAgents", **params)
-
 
     def close(self) -> None:
         """
