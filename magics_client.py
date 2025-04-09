@@ -890,7 +890,7 @@ class MagicsClient:
 
     def replan_completed_agents(
         self,
-        strategy: str = "CompleteRandom",
+        strategy: str = "RandomSquares",
         square_id: Optional[str] = None,
         avoid_current_square: bool = True,
     ) -> None:
