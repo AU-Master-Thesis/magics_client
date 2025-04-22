@@ -1035,9 +1035,19 @@ class MagicsClient:
 
         magics_root_path = Path(self.magics_root_dir)
         if not magics_root_path.is_dir():
-            raise FileNotFoundError(
-                f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}"
-            )
+            print(f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}")
+            print(f"Attempting fallbacks:")
+            for fallback_path in ["/home/zartris/code/rust/magics_api/", "/home/zartris/code/rust/magics_base/"]:
+                fallback_path = Path(fallback_path)
+                if fallback_path.is_dir():
+                    magics_root_path = fallback_path
+                    print(f"  Fallback path found: {magics_root_path}")
+                    break
+            if not magics_root_path.is_dir():
+                raise FileNotFoundError(
+                    f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}"
+                )
+            
 
         latest_executable = self._find_latest_executable(magics_root_path)
         if latest_executable is None:
