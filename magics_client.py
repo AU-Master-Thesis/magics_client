@@ -561,7 +561,7 @@ class MagicsClient:
                 All four weight types must be specified.
             agent_id: Optional agent ID for per-agent weights. If None, the weights are applied system-wide.
                      If provided, the weights are only applied to the specified agent.
-                     
+
         Raises:
             ValueError: If any required weight keys are missing
         """
@@ -569,26 +569,35 @@ class MagicsClient:
         required_keys = ["dynamic", "obstacle", "interrobot", "tracking"]
         missing_keys = [key for key in required_keys if key not in weights]
         if missing_keys:
-            raise ValueError(f"Missing required weight keys: {', '.join(missing_keys)}. All weight types (dynamic, obstacle, interrobot, tracking) must be specified.")
-        
+            raise ValueError(
+                f"Missing required weight keys: {', '.join(missing_keys)}. All weight types (dynamic, obstacle, interrobot, tracking) must be specified."
+            )
+
         # Extract just the numeric part of the agent ID if it's a string
         processed_agent_id = agent_id
         if isinstance(agent_id, str):
             import re
-            match = re.match(r'(\d+)', agent_id)
+
+            match = re.match(r"(\d+)", agent_id)
             if match:
                 processed_agent_id = int(match.group(1))
             else:
-                raise ValueError(f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits.")
-        
-        self._send_request("SetFactorWeights", weights=weights, agent_id=processed_agent_id)
-        
+                raise ValueError(
+                    f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits."
+                )
+
+        self._send_request(
+            "SetFactorWeights", weights=weights, agent_id=processed_agent_id
+        )
+
     def set_batch_factor_weights(
-        self, agent_weights: Dict[int, FactorWeightsDict], default_weights: Optional[FactorWeightsDict] = None
+        self,
+        agent_weights: Dict[int, FactorWeightsDict],
+        default_weights: Optional[FactorWeightsDict] = None,
     ) -> None:
         """
         Set factor graph weights for multiple agents at once.
-        
+
         Args:
             agent_weights: Dictionary mapping agent IDs to their weights.
                 Each weights dictionary should have the structure:
@@ -601,40 +610,51 @@ class MagicsClient:
             default_weights: Optional weights to apply to all other agents.
                 If provided, these weights will be applied to any agent not
                 explicitly specified in agent_weights.
-                
+
         Raises:
             ValueError: If any required weight keys are missing
         """
         # Validate all weight dictionaries
         required_keys = ["dynamic", "obstacle", "interrobot", "tracking"]
-        
+
         # Process agent_weights
         processed_agent_weights = {}
         for agent_id, weights in agent_weights.items():
             # Check for missing keys
             missing_keys = [key for key in required_keys if key not in weights]
             if missing_keys:
-                raise ValueError(f"Missing required weight keys for agent {agent_id}: {', '.join(missing_keys)}. All weight types must be specified.")
-            
+                raise ValueError(
+                    f"Missing required weight keys for agent {agent_id}: {', '.join(missing_keys)}. All weight types must be specified."
+                )
+
             # Process agent_id if it's a string
             processed_id = agent_id
             if isinstance(agent_id, str):
                 import re
-                match = re.match(r'(\d+)', agent_id)
+
+                match = re.match(r"(\d+)", agent_id)
                 if match:
                     processed_id = int(match.group(1))
                 else:
-                    raise ValueError(f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits.")
-            
+                    raise ValueError(
+                        f"Invalid agent ID format: {agent_id}. Expected an integer or a string starting with digits."
+                    )
+
             processed_agent_weights[processed_id] = weights
-        
+
         # Validate default_weights if provided
         if default_weights is not None:
             missing_keys = [key for key in required_keys if key not in default_weights]
             if missing_keys:
-                raise ValueError(f"Missing required weight keys in default_weights: {', '.join(missing_keys)}. All weight types must be specified.")
-        
-        self._send_request("SetBatchFactorWeights", agent_weights=processed_agent_weights, default_weights=default_weights)
+                raise ValueError(
+                    f"Missing required weight keys in default_weights: {', '.join(missing_keys)}. All weight types must be specified."
+                )
+
+        self._send_request(
+            "SetBatchFactorWeights",
+            agent_weights=processed_agent_weights,
+            default_weights=default_weights,
+        )
 
     def step(self) -> None:
         """
@@ -1035,9 +1055,14 @@ class MagicsClient:
 
         magics_root_path = Path(self.magics_root_dir)
         if not magics_root_path.is_dir():
-            print(f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}")
+            print(
+                f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}"
+            )
             print(f"Attempting fallbacks:")
-            for fallback_path in ["/home/zartris/code/rust/magics_api/", "/home/zartris/code/rust/magics_base/"]:
+            for fallback_path in [
+                "/home/zartris/code/rust/magics_api/",
+                "/home/zartris/code/rust/magics_base/",
+            ]:
                 fallback_path = Path(fallback_path)
                 if fallback_path.is_dir():
                     magics_root_path = fallback_path
@@ -1047,7 +1072,6 @@ class MagicsClient:
                 raise FileNotFoundError(
                     f"Configured Magics root directory does not exist or is not a directory: {self.magics_root_dir}"
                 )
-            
 
         latest_executable = self._find_latest_executable(magics_root_path)
         if latest_executable is None:
